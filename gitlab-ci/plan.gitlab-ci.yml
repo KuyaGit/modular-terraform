@@ -1,0 +1,56 @@
+.plan_template:
+  image:
+    name: hashicorp/terraform:light
+    entrypoint:
+      - "/usr/bin/env"
+      - "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  extends: .aws_base
+  stage: plan
+  resource_group: $CI_JOB_NAME
+  script:
+    - cd $ENV
+    - terraform plan -out=plan.tfplan -var-file=vars.tfvars
+  artifacts:
+    paths:
+      - $ENV/plan.tfplan
+      - $ENV/builds
+  # Add these rules to your existing .gitlab-ci.yml
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
+      changes:
+        - "${ENV}/**/*"
+        - "modules/**/*"
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - "${ENV}/**/*"
+        - "modules/**/*"
+
+dev:plan:
+  extends: .plan_template
+  needs:
+    - job: dev:aws:assume_role
+      artifacts: true
+    - job: dev:init
+      artifacts: true
+  variables:
+    ENV: dev
+
+staging:plan:
+  extends: .plan_template
+  needs:
+    - job: staging:aws:assume_role
+      artifacts: true
+    - job: staging:init
+      artifacts: true
+  variables:
+    ENV: staging
+
+prod:plan:
+  extends: .plan_template
+  needs:
+    - job: prod:aws:assume_role
+      artifacts: true
+    - job: prod:init
+      artifacts: true
+  variables:
+    ENV: prod

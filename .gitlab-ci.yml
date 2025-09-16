@@ -1,0 +1,30 @@
+stages:
+  - init
+  - validate
+  - plan
+  - apply
+  # - destroy
+
+.aws_base:
+  before_script:
+    - mkdir -p ~/.aws
+    - mv .aws_tmp/config ~/.aws/config
+
+include:
+  - local: 'gitlab-ci/aws.gitlab-ci.yml'
+  - local: 'gitlab-ci/init.gitlab-ci.yml'
+  - local: 'gitlab-ci/validate.gitlab-ci.yml'
+  - local: 'gitlab-ci/plan.gitlab-ci.yml'
+  - local: 'gitlab-ci/apply.gitlab-ci.yml'
+  # - local: 'gitlab-ci/destroy.gitlab-ci.yml'
+
+variables:
+  TF_HTTP_ADDRESS: "https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/terraform/state/$ENV"
+  TF_HTTP_LOCK_ADDRESS: "https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/terraform/state/$ENV/lock"
+  TF_HTTP_UNLOCK_ADDRESS: "https://gitlab.com/api/v4/projects/$CI_PROJECT_ID/terraform/state/$ENV/lock"
+  TF_HTTP_LOCK_METHOD: POST
+  TF_HTTP_UNLOCK_METHOD: DELETE
+  TF_HTTP_USERNAME: gitlab-ci-token
+  TF_HTTP_PASSWORD: $CI_JOB_TOKEN
+  TF_HTTP_RETRY_WAIT_MIN: 5
+  TF_VAR_project: tara

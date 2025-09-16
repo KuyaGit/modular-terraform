@@ -1,0 +1,60 @@
+.apply_template:
+  image:
+    name: hashicorp/terraform:light
+    entrypoint:
+      - "/usr/bin/env"
+      - "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  extends: .aws_base
+  stage: apply
+  when: manual
+  resource_group: $CI_JOB_NAME
+  environment:
+    name: $ENV
+  script:
+    - cd $ENV
+    - terraform apply -auto-approve plan.tfplan
+  # Add these rules to your existing .gitlab-ci.yml
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
+      changes:
+        - "${ENV}/**/*"
+        - "modules/**/*"
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - "${ENV}/**/*"
+        - "modules/**/*"
+dev:apply:
+  extends: .apply_template
+  needs:
+    - job: dev:aws:assume_role
+      artifacts: true
+    - job: dev:init
+      artifacts: true
+    - job: dev:plan
+      artifacts: true
+  variables:
+    ENV: dev
+
+staging:apply:
+  extends: .apply_template
+  needs:
+    - job: staging:aws:assume_role
+      artifacts: true
+    - job: staging:init
+      artifacts: true
+    - job: staging:plan
+      artifacts: true
+  variables:
+    ENV: staging
+
+prod:apply:
+  extends: .apply_template
+  needs:
+    - job: prod:aws:assume_role
+      artifacts: true
+    - job: prod:init
+      artifacts: true
+    - job: prod:plan
+      artifacts: true
+  variables:
+    ENV: prod

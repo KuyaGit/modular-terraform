@@ -1,0 +1,10 @@
+# Copy this file into the environment folder and use it in you terraform command like so `terraform -backend=true -backend-config=backend.hcl`
+
+address        = "https://gitlab.com/api/v4/projects/58311550/terraform/state/dev"
+lock_address   = "https://gitlab.com/api/v4/projects/58311550/terraform/state/dev/lock"
+unlock_address = "https://gitlab.com/api/v4/projects/58311550/terraform/state/dev/lock"
+username       = "gitlab-ci-token"
+password       = "<GITLAB_ACCESS_TOKEN>"  # Generate one in gitlab with the API permission
+lock_method    = "POST"
+unlock_method  = "DELETE"
+retry_wait_min = "5"

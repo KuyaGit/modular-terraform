@@ -1,0 +1,47 @@
+.aws:assume_role:
+  stage: .pre
+  image: 
+    name: amazon/aws-cli:latest
+    entrypoint: [""]
+  id_tokens:
+    __GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.com
+  script:
+    - echo ${AWS_ROLE_ARN}
+    - mkdir -p ~/.aws
+    - mkdir -p .aws_tmp
+    - echo "${__GITLAB_OIDC_TOKEN}" > $CI_PROJECT_DIR/.aws_tmp/web_identity_token
+    - echo -e "[profile oidc]\nrole_arn=${AWS_ROLE_ARN}\nweb_identity_token_file=$CI_PROJECT_DIR/.aws_tmp/web_identity_token" > $CI_PROJECT_DIR/.aws_tmp/config
+    - cp .aws_tmp/config ~/.aws/config
+    - aws sts get-caller-identity
+  artifacts:
+    paths:
+      - .aws_tmp/
+    expire_in: 1h
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
+      changes:
+        - "${ENV}/**/*"
+        - "modules/**/*"
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - "${ENV}/**/*"
+        - "modules/**/*"
+
+dev:aws:assume_role:
+  extends: .aws:assume_role
+  variables:
+    ENV: dev
+    AWS_ROLE_ARN: $AWS_DEV_CICD_ROLE_ARN
+
+staging:aws:assume_role:
+  extends: .aws:assume_role
+  variables:
+    ENV: staging
+    AWS_ROLE_ARN: $AWS_STAGING_CICD_ROLE_ARN
+
+prod:aws:assume_role:
+  extends: .aws:assume_role
+  variables:
+    ENV: prod
+    AWS_ROLE_ARN: $AWS_PROD_CICD_ROLE_ARN

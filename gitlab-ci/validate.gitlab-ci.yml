@@ -1,0 +1,53 @@
+.validate_template:
+  image:
+    name: hashicorp/terraform:light
+    entrypoint:
+      - "/usr/bin/env"
+      - "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  stage: validate
+  interruptible: true
+  script:
+    - cd $ENV
+    - terraform fmt -check=true
+    - terraform validate
+  # Add these rules to your existing .gitlab-ci.yml
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
+      changes:
+        - "${ENV}/**/*"
+        - "modules/**/*"
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - "${ENV}/**/*"
+        - "modules/**/*"
+  extends: .aws_base
+
+dev:validate:
+  extends: .validate_template
+  needs:
+    - job: dev:aws:assume_role
+      artifacts: true
+    - job: dev:init
+      artifacts: true
+  variables:
+    ENV: dev
+
+staging:validate:
+  extends: .validate_template
+  needs:
+    - job: staging:aws:assume_role
+      artifacts: true
+    - job: staging:init
+      artifacts: true
+  variables:
+    ENV: staging
+
+prod:validate:
+  extends: .validate_template
+  needs:
+    - job: prod:aws:assume_role
+      artifacts: true
+    - job: prod:init
+      artifacts: true
+  variables:
+    ENV: prod
